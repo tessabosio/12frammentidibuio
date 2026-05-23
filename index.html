@@ -196,31 +196,19 @@ const seedTexts = [
   "sono sola?",
 ];
 
-const angSlots = [
-  {ang:-0.6, r:0.55}, {ang:0.75, r:0.50},
-  {ang:-1.15,r:0.62}, {ang:1.2,  r:0.58},
-  {ang:-0.3, r:0.68}, {ang:0.4,  r:0.65},
-  {ang: 2.8, r:0.52}, {ang:-2.7, r:0.56},
-  {ang:-0.8, r:0.45}, {ang:0.9,  r:0.48},
-  {ang: 1.5, r:0.60}, {ang:-1.4, r:0.58},
-];
-
 function buildFragments(texts) {
   const n = texts.length;
-  return texts.map((text, i) => {
-    const s = angSlots[i % angSlots.length];
-    return { text, isUser:false, z: 0.05 + (i/n)*0.84, ang:s.ang, rFrac:s.r,
-             encountered:false, tunnelOpacity:0 };
-  });
+  return texts.map((text, i) => ({
+    text, isUser: false,
+    z: 0.05 + (i/n)*0.84,
+    encountered: false,
+  }));
 }
 
 let fragments = buildFragments(seedTexts);
 
 function makeUserFragment(text) {
-  const ang = (Math.random()-0.5)*Math.PI*1.8;
-  const rFrac = 0.3 + Math.random()*0.5;
-  return { text, isUser:true, z: 0.04 + Math.random()*0.78,
-           ang, rFrac, encountered:false, tunnelOpacity:0 };
+  return { text, isUser: true, z: 0.04 + Math.random()*0.78, encountered: false };
 }
 
 /* === PEDOMETRO (accelerometro) === */
@@ -304,8 +292,8 @@ function triggerEncounter(frag) {
   clearTimeout(encounterTimer);
   encounterTimer = setTimeout(() => {
     encounterEl.classList.remove('show');
-    setTimeout(() => { encounterActive = false; }, 800);
-  }, 2600);
+    setTimeout(() => { encounterActive = false; }, 900);
+  }, 3200);
 }
 
 /* === CONTROLLO DESKTOP === */
@@ -540,60 +528,14 @@ function drawTunnel() {
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.93)');
   ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
 
-  /* === RENDER FRAMMENTI 3D ===
-     Proiezione prospettica: dz = distanza davanti al camminatore.
-     Quando dz < ENCOUNTER_ZONE e non ancora incontrato => trigger encounter.
-     La dimensione e l'opacita' scalano con la distanza. */
+  /* === ENCOUNTER TRIGGER ===
+     Lo schermo rimane buio. Le frasi non si vedono mai nel tunnel:
+     emergono solo quando il camminatore ci passa sopra. */
   const ENCOUNTER_ZONE = 0.045;
-  const VIZ_AHEAD = 0.62; // quanto in avanti si vedono
-  const VIZ_BEHIND = 0.10; // quanto restano visibili dopo il passaggio
-
   fragments.forEach(f => {
-    const dz = f.z - depth;
-
-    // Encounter
-    if (!f.encountered && Math.abs(dz) < ENCOUNTER_ZONE) {
+    if (!f.encountered && Math.abs(f.z - depth) < ENCOUNTER_ZONE) {
       triggerEncounter(f);
     }
-
-    // Range di visibilita'
-    if (dz > VIZ_AHEAD || dz < -VIZ_BEHIND) {
-      f.tunnelOpacity += (0 - f.tunnelOpacity)*0.08;
-      return;
-    }
-
-    // Fade out quando molto vicino (encounter lo sostituisce)
-    const nearFade = Math.abs(dz) < 0.07 ? Math.abs(dz)/0.07 : 1;
-    // Fade in da lontano, fade out dietro
-    let targetAlpha;
-    if (dz >= 0) {
-      // davanti: da 0 (lontano) a 0.85 (vicino), poi fade a 0 nell'encounter zone
-      targetAlpha = nearFade * (1 - dz/VIZ_AHEAD) * 0.85;
-    } else {
-      // dietro: svanisce rapidamente
-      targetAlpha = nearFade * (1 + dz/VIZ_BEHIND) * 0.25;
-    }
-    f.tunnelOpacity += (targetAlpha - f.tunnelOpacity)*0.07;
-    if (f.tunnelOpacity < 0.01) return;
-
-    // Proiezione: piu' vicino = piu' grande e piu' fuori dal centro
-    const dist = Math.max(0.03, Math.abs(dz));
-    const persp = 0.85 / (dist*5.5 + 0.4); // scala prospettica
-    const projR = maxR * persp * f.rFrac * 0.95;
-
-    const sx = lx + Math.cos(f.ang)*projR;
-    const sy = ly + Math.sin(f.ang)*projR;
-
-    const fontSize = Math.max(8, Math.min(20, 10*persp*2.8));
-
-    ctx.save();
-    ctx.globalAlpha = f.tunnelOpacity;
-    ctx.font = `300 ${fontSize}px 'DM Mono', monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = f.isUser ? 'rgba(255,255,195,1)' : 'rgba(255,255,255,1)';
-    ctx.fillText(f.text, sx, sy);
-    ctx.restore();
   });
 
   // Flash passo
