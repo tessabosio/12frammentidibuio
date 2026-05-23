@@ -177,6 +177,11 @@ const STEP_ADVANCE = 0.038;
 let totalSteps = 0;
 let stepFlash = 0;
 
+/* Frammenti: ogni 5 passi (qualunque direzione) appare il prossimo */
+const STEPS_PER_FRAGMENT = 5;
+let stepsSinceLastFragment = 0;
+let nextFragmentIndex = 0;
+
 /* === FRAMMENTI 3D ===
    z = posizione nel tunnel [0,1]
    ang = angolo radiale nel cerchio del tunnel
@@ -197,18 +202,13 @@ const seedTexts = [
 ];
 
 function buildFragments(texts) {
-  const n = texts.length;
-  return texts.map((text, i) => ({
-    text, isUser: false,
-    z: 0.05 + (i/n)*0.84,
-    encountered: false,
-  }));
+  return texts.map(text => ({ text, isUser: false }));
 }
 
 let fragments = buildFragments(seedTexts);
 
 function makeUserFragment(text) {
-  return { text, isUser: true, z: 0.04 + Math.random()*0.78, encountered: false };
+  return { text, isUser: true };
 }
 
 /* === PEDOMETRO (accelerometro) === */
@@ -252,6 +252,14 @@ function registerStep() {
   stepFlash = 20;
   audioStart();
   updateStepIndicator();
+
+  stepsSinceLastFragment++;
+  if (stepsSinceLastFragment >= STEPS_PER_FRAGMENT && fragments.length > 0) {
+    stepsSinceLastFragment = 0;
+    const frag = fragments[nextFragmentIndex % fragments.length];
+    nextFragmentIndex++;
+    triggerEncounter(frag);
+  }
 }
 
 function updateStepIndicator() {
@@ -299,14 +307,12 @@ function triggerEncounter(frag) {
 /* === CONTROLLO DESKTOP === */
 window.addEventListener('keydown', e => {
   if (!started) return;
-  if (e.key==='ArrowUp'||e.key==='ArrowRight') {
-    walkDepth = Math.min(MAX_DEPTH, walkDepth + 0.06);
-    totalSteps++; stepFlash=20;
-    audioStart(); resetIdle(); updateStepIndicator();
-  }
-  if (e.key==='ArrowDown'||e.key==='ArrowLeft') {
-    walkDepth = Math.max(MIN_DEPTH, walkDepth - 0.06);
-    audioStart(); resetIdle();
+  if (e.key==='ArrowUp'||e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='ArrowLeft') {
+    if (e.key==='ArrowDown'||e.key==='ArrowLeft') {
+      walkDepth = Math.max(MIN_DEPTH, walkDepth - STEP_ADVANCE);
+    }
+    registerStep();
+    resetIdle();
   }
 });
 
@@ -330,6 +336,7 @@ function goHome() {
   encounterActive = false;
   started = false;
   walkDepth = 0; depth = 0; totalSteps = 0;
+  stepsSinceLastFragment = 0; nextFragmentIndex = 0;
   fragments = buildFragments(seedTexts);
   aboutScreenEl.style.display = '';
   aboutScreenEl.classList.remove('visible');
@@ -528,15 +535,6 @@ function drawTunnel() {
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.93)');
   ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
 
-  /* === ENCOUNTER TRIGGER ===
-     Lo schermo rimane buio. Le frasi non si vedono mai nel tunnel:
-     emergono solo quando il camminatore ci passa sopra. */
-  const ENCOUNTER_ZONE = 0.045;
-  fragments.forEach(f => {
-    if (!f.encountered && Math.abs(f.z - depth) < ENCOUNTER_ZONE) {
-      triggerEncounter(f);
-    }
-  });
 
   // Flash passo
   if (stepFlash > 0) {
