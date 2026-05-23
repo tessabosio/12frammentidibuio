@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>12 frammenti di Buio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #080808;
+    cursor: none;
+  }
+
+  canvas { position: fixed; inset: 0; display: block; }
+
+  #cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    mix-blend-mode: screen;
+  }
+
+  /* ── HOME ── */
+  #screen-home {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50; background: #080808;
+    transition: opacity 1.2s ease;
+  }
+  #screen-home.hidden { opacity: 0; pointer-events: none; }
+
+  .intro-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(36px, 7vw, 80px);
+    color: rgba(255,255,255,0.95);
+    font-weight: 400; letter-spacing: -0.01em;
+    line-height: 1; text-align: center;
+    animation: fadeUp 1.4s ease both;
+  }
+  .intro-title em { font-style: italic; color: rgba(255,255,210,0.85); }
+
+  .intro-sub {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: clamp(11px, 1.4vw, 14px);
+    color: rgba(255,255,255,0.28);
+    margin-top: 28px; text-align: center;
+    letter-spacing: 0.08em; line-height: 1.9;
+    max-width: 360px;
+    animation: fadeUp 1.4s 0.3s ease both;
+  }
+
+  #start-btn {
+    margin-top: 48px;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 12px; letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.5); background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.2); border-radius: 2px;
+    padding: 12px 32px; cursor: none;
+    transition: color 0.3s, border-color 0.3s;
+    animation: fadeUp 1.4s 0.6s ease both;
+  }
+  #start-btn:hover { color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.5); }
+
+  #home-nav {
+    position: fixed; top: 28px; left: 32px;
+    display: flex; flex-direction: column; gap: 10px;
+    animation: fadeUp 1.4s ease both;
+  }
+
+  #home-label {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.65);
+  }
+
+  #about-home-btn {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.45); background: transparent;
+    border: none; cursor: none; text-align: left; padding: 0;
+    transition: color 0.3s;
+  }
+  #about-home-btn:hover { color: rgba(255,255,255,0.85); }
+
+  /* ── ABOUT DA HOME ── */
+  #screen-about-home {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 70; background: #080808;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1.2s ease;
+    padding: 40px 24px; overflow-y: auto;
+  }
+  #screen-about-home.visible { opacity: 1; pointer-events: all; }
+
+  #back-home-btn {
+    align-self: flex-start;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.3); background: transparent;
+    border: none; cursor: none;
+    transition: color 0.3s;
+  }
+  #back-home-btn:hover { color: rgba(255,255,255,0.8); }
+
+  /* ── ABOUT ── */
+  #screen-about {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50; background: #080808;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1.2s ease;
+    padding: 40px 24px; overflow-y: auto;
+  }
+  #screen-about.visible { opacity: 1; pointer-events: all; }
+
+  .about-inner { max-width: 520px; width: 100%; display: flex; flex-direction: column; }
+
+  .about-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(26px, 4.5vw, 50px);
+    color: rgba(255,255,255,0.85); font-weight: 400;
+    line-height: 1.15; margin-bottom: 36px;
+  }
+  .about-title em { font-style: italic; color: rgba(255,255,230,0.55); }
+
+  .about-body {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: clamp(11px, 1.3vw, 13px);
+    color: rgba(255,255,255,0.38);
+    line-height: 2; letter-spacing: 0.03em;
+    display: flex; flex-direction: column; gap: 20px;
+    margin-bottom: 48px;
+  }
+  .about-body p { margin: 0; }
+  .about-body strong { color: rgba(255,255,255,0.62); font-weight: 400; }
+
+  #enter-dark-btn, #close-about-exp-btn {
+    align-self: flex-start;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.45); background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.18); border-radius: 2px;
+    padding: 12px 28px; cursor: none;
+    transition: color 0.3s, border-color 0.3s;
+  }
+  #enter-dark-btn:hover, #close-about-exp-btn:hover { color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.5); }
+
+  /* ── UI ESPERIENZA ── */
+  #ui {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; z-index: 40;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1s 0.5s ease;
+  }
+  #ui.visible { opacity: 1; pointer-events: all; }
+
+  #input-row { display: flex; gap: 8px; width: min(480px, 90vw); }
+
+  #fragment-input {
+    flex: 1; font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 12px; letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.1); border-radius: 2px;
+    padding: 10px 16px; outline: none; cursor: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  #fragment-input::placeholder { color: rgba(255,255,255,0.2); }
+  #fragment-input:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); }
+
+  #submit-btn {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.65); background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.3); border-radius: 2px;
+    padding: 10px 20px; cursor: none; white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  #submit-btn:hover { color: rgba(255,255,255,1); border-color: rgba(255,255,255,0.7); }
+
+  /* arrow hint */
+  #arrow-hint {
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+    text-align: center; line-height: 1.8;
+  }
+
+  /* NAV */
+  .exp-nav {
+    position: fixed; top: 28px;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 10px; letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.6);
+    background: transparent; border: none; cursor: none;
+    z-index: 40; opacity: 0; transition: opacity 1s ease, color 0.2s;
+  }
+  .exp-nav.visible { opacity: 1; }
+  .exp-nav:hover { color: rgba(255,255,255,1); }
+  #home-link { left: 32px; top: 28px; }
+  #about-exp-btn { left: 32px; top: 48px; }
+  #counter    { right: 32px; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 110px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 11px; letter-spacing: 0.08em;
+    color: rgba(255,255,230,0.7);
+    pointer-events: none; z-index: 60; text-align: center;
+    opacity: 0; transition: opacity 0.6s ease;
+    max-width: 60vw; line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 600px) {
+    #home-nav { top: 20px; left: 20px; }
+
+    #start-btn { margin-top: 36px; padding: 12px 28px; cursor: pointer; }
+
+    #about-home-btn, #back-home-btn, #enter-dark-btn,
+    #close-about-exp-btn { cursor: pointer; }
+
+    #screen-about-home, #screen-about { padding: 32px 20px; }
+    .about-inner { max-width: 100%; }
+    .about-title { font-size: clamp(22px, 7vw, 36px); margin-bottom: 24px; }
+    .about-body { font-size: 12px; gap: 16px; margin-bottom: 32px; }
+
+    #ui { bottom: 24px; width: 100%; padding: 0 16px; }
+    #input-row { width: 100%; }
+    #fragment-input { font-size: 14px; cursor: text; }
+    #submit-btn { cursor: pointer; }
+
+    #home-link, #about-exp-btn { cursor: pointer; }
+    #counter { right: 16px; font-size: 9px; }
+    #home-link { left: 16px; }
+    #about-exp-btn { left: 16px; top: 44px; }
+
+    /* Su mobile nascondi hint frecce, mostra hint giroscopio */
+    #arrow-hint { display: none; }
+    #gyro-hint { display: block; }
+
+    /* Nascondi cursore custom su mobile */
+    #cursor { display: none; }
+
+    /* Permesso giroscopio */
+    #gyro-permission-btn {
+      display: block;
+    }
+  }
+
+  /* Hint giroscopio (nascosto su desktop) */
+  #gyro-hint {
+    display: none;
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 10px; letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+    text-align: center; line-height: 1.8;
+  }
+
+  /* Bottone permesso giroscopio iOS */
+  #gyro-permission-btn {
+    display: none;
+    position: fixed; bottom: 130px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace; font-weight: 300;
+    font-size: 10px; letter-spacing: 0.12em;
+    color: rgba(255,255,230,0.6); background: transparent;
+    border: 0.5px solid rgba(255,255,255,0.2); border-radius: 2px;
+    padding: 10px 24px; cursor: pointer;
+    z-index: 50; white-space: nowrap;
+    transition: color 0.3s, border-color 0.3s;
+  }
+  #gyro-permission-btn:hover { color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.5); }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div id="cursor"></div>
+
+<!-- HOME -->
+<div id="screen-home">
+  <h1 class="intro-title">12 frammenti <em>di Buio</em></h1>
+  <p class="intro-sub">Muoviti nel Buio.<br>La Luce è lì, da qualche parte.</p>
+  <button id="start-btn">ENTRA</button>
+</div>
+
+<!-- ABOUT DA HOME -->
+<div id="screen-about-home">
+  <div class="about-inner">
+    <h1 class="about-title">Ho sempre visto il futuro<br>come <em>un tunnel nero.</em></h1>
+    <div class="about-body">
+      <p>Da qualche parte, in fondo, c'è una Luce.<br>
+      Piccola, lontana. A volte la intravedo.<br>
+      Ma ogni volta che cerco di avvicinarmi, mi perdo nel Buio.</p>
+      <p>Non è paura del fallimento.<br>
+      È qualcosa di più sottile —
+      <strong>l'incertezza di non sapere nemmeno cosa cercare.</strong><br>
+      Il futuro non è un posto sbagliato. È un posto che non riesco a raggiungere.</p>
+      <p>Nel Buio, respiro, mi perdo, piango, urlo.</p>
+      <p>Qui dentro ci sono frammenti di me, persi nel Buio.<br>
+      Puoi leggerli avvicinandoti. Puoi lasciarne uno tuo.<br>
+      <strong>Non so se riuscirò mai a trovare la Luce.</strong></p>
+    </div>
+    <button id="back-home-btn">← TORNA NEL BUIO</button>
+  </div>
+</div>
+
+<!-- ABOUT (dal flusso entra) -->
+<div id="screen-about">
+  <div class="about-inner">
+    <h1 class="about-title">Ho sempre visto il futuro<br>come <em>un tunnel nero.</em></h1>
+    <div class="about-body">
+      <p>Da qualche parte, in fondo, c'è una Luce.<br>
+      Piccola, lontana. A volte la intravedo.<br>
+      Ma ogni volta che cerco di avvicinarmi, mi perdo nel Buio.</p>
+      <p>Non è paura del fallimento.<br>
+      È qualcosa di più sottile —
+      <strong>l'incertezza di non sapere nemmeno cosa cercare.</strong><br>
+      Il futuro non è un posto sbagliato. È un posto che non riesco a raggiungere.</p>
+      <p>Nel Buio, respiro, mi perdo, piango, urlo.</p>
+      <p>Qui dentro ci sono frammenti di me, persi nel Buio.<br>
+      Puoi leggerli utilizzando le frecce. Puoi lasciarne uno tuo.<br>
+      <strong>Non so se riuscirò mai a trovare la Luce.</strong></p>
+    </div>
+    <button id="enter-dark-btn">ENTRA NEL BUIO</button>
+    <button id="close-about-exp-btn" style="display:none;">← TORNA NEL BUIO</button>
+  </div>
+</div>
+
+<!-- NAV esperienza -->
+<button id="home-link" class="exp-nav">home</button>
+<button id="about-exp-btn" class="exp-nav">about</button>
+<div id="counter" class="exp-nav"></div>
+
+<!-- UI esperienza -->
+<div id="ui">
+  <div id="input-row">
+    <input id="fragment-input" type="text" maxlength="72" placeholder="lascia un frammento" />
+    <button id="submit-btn">INVIA</button>
+  </div>
+  <div id="arrow-hint">↑ AVANZARE &nbsp;·&nbsp; ↓ ALLONTANARSI</div>
+  <div id="gyro-hint">inclina verso di te · avvicinati alla Luce</div>
+</div>
+
+<button id="gyro-permission-btn">attiva giroscopio</button>
+
+<div id="toast"></div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const cursorEl = document.getElementById('cursor');
+const homeScreenEl = document.getElementById('screen-home');
+const aboutScreenEl = document.getElementById('screen-about');
+const uiEl = document.getElementById('ui');
+const counterEl = document.getElementById('counter');
+const homeLinkEl = document.getElementById('home-link');
+const aboutExpBtn = document.getElementById('about-exp-btn');
+const aboutHomeScreenEl = document.getElementById('screen-about-home');
+const toastEl = document.getElementById('toast');
+
+let W, H, mx = 0, my = 0, started = false, t = 0;
+
+// depth: 0 = inizio tunnel, 1 = fondo (luce). Non arriva mai a 1.
+let depth = 0;
+let depthTarget = 0;
+const MAX_DEPTH = 0.88; // non arriva mai alla luce
+const MIN_DEPTH = 0;
+
+// idle timeout
+let idleTimer = null;
+const IDLE_MS = 15000;
+
+const seedTexts = [
+  "non so cosa voglio fare",
+  "e se sbaglio tutto?",
+  "forse la risposta non esiste",
+  "ho paura di deludere",
+  "ogni scelta chiude altre porte",
+  "mi sento persa",
+  "il futuro non aspetta",
+  "e se la Luce sono io?",
+  "ho paura del Buio",
+  "ho paura della Luce",
+  "non riesco a pensare",
+  "sono sola?",
+];
+
+// Ogni frammento: posizione come % dello schermo, soglia depth per apparire
+// xPct: 0.03–0.35 = fascia sinistra | 0.65–0.97 = fascia destra
+// yPct: 0.08–0.92 escludendo 0.42–0.58 (zona centrale della luce)
+function buildFragments(texts) {
+  const result = [];
+  // distribuiamo depth threshold uniformemente
+  const n = texts.length;
+  // posizioni predefinite: 6 sinistra, 6 destra, evitano il centro verticale
+  const slots = [
+    { x: 0.04, y: 0.12 }, { x: 0.68, y: 0.15 },
+    { x: 0.06, y: 0.28 }, { x: 0.72, y: 0.30 },
+    { x: 0.03, y: 0.62 }, { x: 0.65, y: 0.68 },
+    { x: 0.07, y: 0.78 }, { x: 0.70, y: 0.82 },
+    { x: 0.05, y: 0.44 }, { x: 0.66, y: 0.55 },
+    { x: 0.04, y: 0.90 }, { x: 0.71, y: 0.92 },
+  ];
+  texts.forEach((text, i) => {
+    const slot = slots[i % slots.length];
+    result.push({
+      text,
+      isUser: false,
+      opacity: 0,
+      depthThreshold: 0.08 + (i / n) * 0.74,
+      xPct: slot.x,
+      yPct: slot.y,
+    });
+  });
+  return result;
+}
+
+let fragments = buildFragments(seedTexts);
+
+function makeUserFragment(text) {
+  // sceglie uno slot non a centro schermo
+  const xPct = Math.random() < 0.5
+    ? 0.03 + Math.random() * 0.28        // sinistra
+    : 0.65 + Math.random() * 0.28;       // destra
+  let yPct = Math.random();
+  // evita la fascia centrale 42%–58%
+  if (yPct > 0.38 && yPct < 0.62) yPct = yPct < 0.5 ? 0.36 : 0.64;
+  return {
+    text, isUser: true, opacity: 0,
+    depthThreshold: Math.random() * 0.7,
+    xPct, yPct,
+  };
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+}
+window.addEventListener('resize', resize);
+resize();
+
+window.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursorEl.style.left = mx + 'px';
+  cursorEl.style.top = my + 'px';
+  resetIdle();
+});
+
+window.addEventListener('keydown', e => {
+  if (!started) return;
+  if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+    depthTarget = Math.min(MAX_DEPTH, depthTarget + 0.06);
+    audioStart(); // primo keydown sblocca autoplay
+    resetIdle();
+  }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+    depthTarget = Math.max(MIN_DEPTH, depthTarget - 0.06);
+    audioStart();
+    resetIdle();
+  }
+});
+
+window.addEventListener('click', resetIdle);
+
+/* ── GIROSCOPIO (mobile) ── */
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+let gyroActive = false;
+let gyroBaseBeta = null;   // angolo di riferimento calibrato al primo movimento
+const GYRO_DEAD = 4;       // zona morta in gradi
+const GYRO_RANGE = 30;     // gradi per arrivare da 0 a MAX_DEPTH
+const GYRO_SPEED = 0.018;  // velocità di lerp verso il target
+
+function applyGyro(beta) {
+  if (!started) return;
+  // Calibra all'inizio: il primo valore stabile diventa il centro
+  if (gyroBaseBeta === null) { gyroBaseBeta = beta; return; }
+  let delta = beta - gyroBaseBeta; // >0 = inclinato verso l'utente (avanti)
+  // zona morta
+  if (Math.abs(delta) < GYRO_DEAD) delta = 0;
+  else delta = delta > 0 ? delta - GYRO_DEAD : delta + GYRO_DEAD;
+  // mappa su depthTarget
+  const t = Math.max(-1, Math.min(1, delta / GYRO_RANGE));
+  depthTarget = Math.max(MIN_DEPTH, Math.min(MAX_DEPTH, depthTarget + t * GYRO_SPEED));
+  audioStart();
+  resetIdle();
+}
+
+function setupGyro() {
+  if (!isMobile) return;
+  const btn = document.getElementById('gyro-permission-btn');
+
+  function startListening() {
+    gyroActive = true;
+    window.addEventListener('deviceorientation', e => {
+      if (e.beta !== null) applyGyro(e.beta);
+    });
+    btn.style.display = 'none';
+  }
+
+  // iOS 13+ richiede permesso esplicito
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    btn.style.display = 'block';
+    btn.addEventListener('click', () => {
+      DeviceOrientationEvent.requestPermission()
+        .then(state => { if (state === 'granted') startListening(); })
+        .catch(console.error);
+    });
+  } else {
+    // Android e browser che non richiedono permesso
+    startListening();
+  }
+}
+
+setupGyro();
+
+// Ricalibratura giroscopio al tocco (doppio tap ricalibbra)
+let lastTap = 0;
+window.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    gyroBaseBeta = null; // reset calibrazione al prossimo evento
+    showToast('giroscopio ricalibrato');
+  }
+  lastTap = now;
+  resetIdle();
+});
+
+// onHome = true solo quando la home è visibile — il timer NON gira in home
+let onHome = true;
+
+// AUDIO
+const audio = new Audio('audio.mp3');
+audio.loop = true;
+audio.volume = 0;
+
+function audioStart() {
+  if (audio.paused) {
+    audio.play().catch(() => {});
+  }
+}
+
+function audioStop() {
+  audio.pause();
+  audio.currentTime = 0;
+  audio.volume = 0;
+}
+
+function audioUpdateVolume() {
+  // volume segue depth con lerp morbido, da 0 a 0.85
+  const targetVol = Math.min(0.85, depth / MAX_DEPTH * 0.85);
+  audio.volume += (targetVol - audio.volume) * 0.03;
+}
+
+function resetIdle() {
+  clearTimeout(idleTimer);
+  if (onHome) return;
+  idleTimer = setTimeout(goHome, IDLE_MS);
+}
+
+function goHome() {
+  onHome = true;
+  clearTimeout(idleTimer);
+  audioStop();
+  uiEl.classList.remove('visible');
+  counterEl.classList.remove('visible');
+  homeLinkEl.classList.remove('visible');
+  aboutExpBtn.classList.remove('visible');
+  started = false;
+  depth = 0; depthTarget = 0;
+  aboutScreenEl.style.display = '';
+  aboutScreenEl.classList.remove('visible');
+  aboutHomeScreenEl.classList.remove('visible');
+  aboutHomeScreenEl.style.display = 'none';
+  homeScreenEl.style.display = 'flex';
+  homeScreenEl.style.opacity = '0';
+  homeScreenEl.classList.remove('hidden');
+  setTimeout(() => { homeScreenEl.style.opacity = '1'; }, 20);
+}
+
+/* ABOUT-HOME → HOME (or back to experience) */
+document.getElementById('back-home-btn').addEventListener('click', () => {
+  aboutHomeScreenEl.classList.remove('visible');
+  setTimeout(() => {
+    aboutHomeScreenEl.style.display = 'none';
+    if (!started) {
+      onHome = true;
+      homeScreenEl.style.display = 'flex';
+      homeScreenEl.style.opacity = '0';
+      homeScreenEl.classList.remove('hidden');
+      setTimeout(() => { homeScreenEl.style.opacity = '1'; }, 20);
+    } else {
+      resetIdle();
+    }
+  }, 1000);
+});
+
+/* HOME → ABOUT */
+document.getElementById('start-btn').addEventListener('click', () => {
+  onHome = false;
+  homeScreenEl.classList.add('hidden');
+  setTimeout(() => {
+    homeScreenEl.style.display = 'none';
+    aboutScreenEl.classList.add('visible');
+    resetIdle();
+  }, 1200);
+});
+
+aboutExpBtn.addEventListener('click', () => {
+  aboutHomeScreenEl.style.display = 'flex';
+  setTimeout(() => { aboutHomeScreenEl.classList.add('visible'); }, 20);
+  resetIdle(); // timer continua a girare anche nell'about aperto dall'esperienza
+});
+
+/* ABOUT → ESPERIENZA */
+document.getElementById('enter-dark-btn').addEventListener('click', () => {
+  aboutScreenEl.classList.remove('visible');
+  aboutScreenEl.style.pointerEvents = 'none';
+  setTimeout(() => {
+    aboutScreenEl.style.display = 'none';
+    uiEl.classList.add('visible');
+    counterEl.classList.add('visible');
+    homeLinkEl.classList.add('visible');
+    aboutExpBtn.classList.add('visible');
+    updateCounter();
+    started = true;
+    mx = W * 0.5; my = H * 0.5;
+    audioStart();
+    requestAnimationFrame(loop);
+    resetIdle();
+    // Su iOS mostra il bottone di permesso giroscopio
+    if (isMobile && !gyroActive) {
+      const btn = document.getElementById('gyro-permission-btn');
+      if (btn.style.display !== 'none') btn.style.display = 'block';
+    }
+  }, 1000);
+});
+
+/* ESPERIENZA → HOME */
+homeLinkEl.addEventListener('click', goHome);
+
+document.getElementById('submit-btn').addEventListener('click', addUserFragment);
+document.getElementById('fragment-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addUserFragment();
+});
+
+function updateCounter() {
+  counterEl.textContent = `${fragments.length} frammenti nel Buio`;
+}
+
+function showToast(msg) {
+  toastEl.textContent = msg;
+  toastEl.style.opacity = '1';
+  setTimeout(() => { toastEl.style.opacity = '0'; }, 2800);
+}
+
+function addUserFragment() {
+  const inp = document.getElementById('fragment-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  fragments.push(makeUserFragment(val));
+  inp.value = '';
+  updateCounter();
+  showToast('il tuo frammento è nel Buio.');
+  resetIdle();
+}
+
+/* ── TUNNEL RENDERER ── */
+function drawTunnel() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(0, 0, W, H);
+  if (!started) return;
+
+  depth += (depthTarget - depth) * 0.04;
+
+  const cx = W / 2, cy = H / 2;
+  const maxR = Math.min(W, H) * 0.52;
+
+  // luce instabile — trema e vive
+  const wobbleX = Math.sin(t * 0.031) * 7 + Math.sin(t * 0.073) * 3;
+  const wobbleY = Math.cos(t * 0.027) * 6 + Math.cos(t * 0.061) * 2;
+  const lx = cx + wobbleX;
+  const ly = cy + wobbleY;
+
+  // pulse organico
+  const pulse = Math.sin(t * 0.038) * 0.12 + Math.sin(t * 0.071) * 0.06;
+
+  // più ci avviciniamo più la luce esplode
+  const prox = depth;
+  const lightCoreR = 5  + prox * 55  + pulse * 7;
+  const lightGlowR = 70 + prox * 300 + pulse * 28;
+  const coreAlpha  = 0.85 + prox * 0.12 + pulse * 0.04;
+  const g1Alpha    = 0.22 + prox * 0.40;
+  const g2Alpha    = 0.06 + prox * 0.16;
+
+  // alone esterno grande
+  const glow3 = ctx.createRadialGradient(lx, ly, 0, lx, ly, lightGlowR * 2.2);
+  glow3.addColorStop(0, `rgba(255,235,130,${g2Alpha * 0.6})`);
+  glow3.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow3; ctx.fillRect(0, 0, W, H);
+
+  // alone medio caldo
+  const glow2 = ctx.createRadialGradient(lx, ly, 0, lx, ly, lightGlowR);
+  glow2.addColorStop(0, `rgba(255,248,195,${g1Alpha})`);
+  glow2.addColorStop(0.35, `rgba(255,238,155,${g2Alpha * 1.5})`);
+  glow2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow2; ctx.fillRect(0, 0, W, H);
+
+  // anelli prospettici del tunnel
+  const RINGS = 22;
+  for (let i = RINGS; i >= 1; i--) {
+    const frac = i / RINGS;
+    const r = maxR * Math.pow(frac, 1.5);
+    const warmth = prox * (1 - frac) * 0.7;
+    const rC = Math.round(255 * Math.min(1, warmth * 1.2));
+    const gC = Math.round(180 * Math.min(1, warmth));
+    const ringAlpha = frac * 0.13 + prox * (1 - frac) * 0.14;
+
+    ctx.beginPath();
+    ctx.arc(lx, ly, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${rC},${gC},255,${ringAlpha})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    if (i % 4 === 0 && i > 0) {
+      const innerR = maxR * Math.pow(Math.max(0, (i - 4) / RINGS), 1.5);
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(lx + Math.cos(a) * innerR, ly + Math.sin(a) * innerR);
+        ctx.lineTo(lx + Math.cos(a) * r, ly + Math.sin(a) * r);
+        ctx.strokeStyle = `rgba(255,255,255,${ringAlpha * 0.3})`;
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // nucleo luminoso
+  const core = ctx.createRadialGradient(lx, ly, 0, lx, ly, lightCoreR);
+  core.addColorStop(0, `rgba(255,255,235,${coreAlpha})`);
+  core.addColorStop(0.45, `rgba(255,248,195,${coreAlpha * 0.55})`);
+  core.addColorStop(1, 'rgba(255,242,170,0)');
+  ctx.fillStyle = core; ctx.fillRect(0, 0, W, H);
+
+  ctx.beginPath();
+  ctx.arc(lx, ly, Math.max(2.5, lightCoreR * 0.22), 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(255,255,245,${coreAlpha})`;
+  ctx.fill();
+
+  // vignette bordi — PRIMA delle frasi così non le copre
+  const vg = ctx.createRadialGradient(cx, cy, maxR * 0.42, cx, cy, maxR * 1.18);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.93)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  // FRAMMENTI — posizioni % schermo, appaiono gradualmente con la depth
+  fragments.forEach(f => {
+    const targetOp = depth >= f.depthThreshold ? 1 : 0;
+    f.opacity = (f.opacity || 0) + (targetOp - (f.opacity || 0)) * 0.025;
+    if ((f.opacity || 0) < 0.005) return;
+
+    const fx = f.xPct * W;
+    const fy = f.yPct * H;
+    const align = f.xPct < 0.5 ? 'left' : 'left';
+
+    ctx.save();
+    ctx.font = `300 14px 'DM Mono', monospace`;
+    ctx.fillStyle = f.isUser
+      ? `rgba(255,255,200,${f.opacity})`
+      : `rgba(255,255,255,${f.opacity * 0.9})`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.text, fx, fy);
+    ctx.restore();
+  });
+}
+
+function loop() {
+  t++;
+  if (started) audioUpdateVolume();
+  drawTunnel();
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
